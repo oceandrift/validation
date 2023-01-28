@@ -1,0 +1,9 @@
+name "oceandrift-validation"
+description "Input validation library"
+
+copyright "Copyright © 2023  Elias Batek"
+license "BSL-1.0"
+
+authors "Elias Batek (0xEAB)"
+
+targetPath "bin"
