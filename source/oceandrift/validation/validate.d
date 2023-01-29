@@ -5,45 +5,67 @@ module oceandrift.validation.validate;
 
 import oceandrift.validation.constraints;
 import std.conv : to;
-import std.traits : Fields, FieldNameTuple, getUDAs;
 
-@safe pure nothrow:
-
-///
+/++
+    Validates data according to its type’s constraints
+ +/
 ValidationResult!T validate(bool bailOut = false, T)(T input)
         if (is(T == struct) || is(T == class))
 {
     auto output = ValidationResult!T(true);
 
-    static foreach (idx, fieldName; FieldNameTuple!T)
+    enum dataTypeName = __traits(identifier, T);
+
+    // foreach field in `T`
+    static foreach (idx, field; T.tupleof)
     {
-        static foreach (constraint; allConstraints)
         {
-            { // static foreach doesn’t introduce a scope per default
-                alias constraintData = getUDAs!(__traits(getMember, T, fieldName), constraint);
+            enum string fieldName = __traits(identifier, field);
 
-                // constraint applicable?
-                static if (constraintData.length != 0)
+            // foreach @UDA of `field`
+            alias attributes = __traits(getAttributes, field);
+            static foreach (attributeValue; attributes)
+            {
                 {
-                    // ensure non-ambiguous constraint
-                    static assert(
-                        (constraintData.length == 1),
-                        "Ambiguous `@" ~ constraint.stringof ~ "` constraint."
-                            ~ " Please specify each constraint only once per field; found: "
-                            ~ constraintData.length.to!string
-                    );
+                    alias attributeType = typeof(attributeValue);
+                    enum attributeName = __traits(identifier, attributeType);
 
-                    mixin(`immutable bool valid = constraintData[0].check(input.` ~ fieldName ~ `);`);
-
-                    if (!valid)
+                    // is UDA a @constraint?
+                    static if (isConstraint!attributeType)
                     {
-                        enum em = constraintData[0].errorMessage;
-                        enum ve = ValidationError(fieldName, em);
-                        output._errors[idx] = ve;
-                        output._ok = false;
+                        // validate constraint implementation
+                        static assert(
+                            __traits(compiles, () {
+                                string s = attributeValue.errorMessage;
+                            }),
+                            "Invalid Constraint: `@"
+                                ~ attributeName ~ "` does not implement `string errorMessage` (at least not properly)"
+                        );
+                        static assert(
+                            __traits(compiles, () {
+                                mixin(`bool valid = attributeValue.check(input.` ~ fieldName ~ `);`);
+                            }),
+                            "Invalid Constraint: `@"
+                                ~ attributeName
+                                ~ "` does not implement `bool check(" ~ dataTypeName ~ ") {…}`"
+                        );
 
-                        static if (bailOut)
-                            return output;
+                        // apply constraint
+                        mixin(
+                            `immutable bool valid = attributeValue.check(input.` ~ fieldName ~ `);`
+                        );
+
+                        // check failed?
+                        if (!valid)
+                        {
+                            enum em = attributeValue.errorMessage;
+                            enum ve = ValidationError(fieldName, em);
+                            output._errors[idx] = ve;
+                            output._ok = false;
+
+                            static if (bailOut)
+                                return output;
+                        }
                     }
                 }
             }
@@ -53,7 +75,30 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
     return output;
 }
 
-debug pragma(msg, "Available oceandrift/validation constraints: " ~ allConstraints.stringof);
+///
+@safe unittest
+{
+    struct Person
+    {
+        @isNotEmpty
+        string name;
+
+        @isPositive
+        int age;
+    }
+
+    auto personA = Person("Somebody", 32);
+    ValidationResult!Person rA = validate(personA);
+    assert(rA.ok);
+
+    auto personB = Person("", 32);
+    ValidationResult!Person rB = validate(personB);
+    assert(!rB.ok);
+
+    auto personC = Person("Tom", -1);
+    ValidationResult!Person rC = validate(personC);
+    assert(!rC.ok);
+}
 
 /// Validation Error
 struct ValidationError
@@ -78,12 +123,16 @@ struct ValidationResult(Data)
 {
 @safe pure nothrow @nogc:
 
-    // public on purpose, though undocumented; “to be used with care”
-    public
+    private
     {
         bool _ok = false;
         Data _data;
-        ValidationError[(Fields!Data).length] _errors;
+    }
+
+    // public on purpose, though undocumented; “to be used with care”
+    public
+    {
+        ValidationError[(Data.tupleof).length] _errors;
     }
 
     ///
@@ -93,7 +142,9 @@ struct ValidationResult(Data)
     }
 
     /++
-        Validated data (only valid if `.ok` == `true`)
+        Validated data
+
+        (only valid if `.ok` == `true`)
      +/
     Data data() inout
     in (this.ok)
@@ -103,7 +154,7 @@ struct ValidationResult(Data)
 
     /++
         Returns:
-            InputRange containing all errors
+            InputRange containing all [ValidationError]s
      +/
     auto errors()
     {
@@ -111,23 +162,4 @@ struct ValidationResult(Data)
 
         return _errors[].filter!(e => e.message !is null);
     }
-}
-
-unittest
-{
-    struct Person
-    {
-        @isNotEmpty
-        string name;
-
-        int age;
-    }
-
-    auto personA = Person("Some Body", 32);
-    ValidationResult!Person rA = validate(personA);
-    assert(rA.ok);
-
-    auto personB = Person("", 32);
-    ValidationResult!Person rB = validate(personB);
-    assert(!rB.ok);
 }

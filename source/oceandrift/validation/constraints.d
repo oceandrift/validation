@@ -2,6 +2,23 @@
     Validation constraints
 
     Implemented as UDAs.
+
+    $(B “Batteries included!”)
+    This module provides a set of constraints
+    for the most common use cases.
+
+
+    ## Implementing your own constraints
+
+    To implement a custom constraint,
+    create a new `struct` and tag it with @[constraint].
+
+    Implement a member function `check()` that accepts a parameter of the type to validate.
+    Utilize templates or overloads to implement checks for different types.
+
+    Implement an `errorMessage` member:
+    Either a (property) function with return type `string`
+    or a field `string`.
  +/
 module oceandrift.validation.constraints;
 
@@ -108,6 +125,16 @@ enum isNotEmpty = minLength(1);
 @constraint struct minValue
 {
     long min;
+
+    bool check(T)(T actual)
+    {
+        return (actual >= min);
+    }
+
+    string errorMessage()
+    {
+        return "Too low, expected minimum " ~ this.min.to!string;
+    }
 }
 
 /++
@@ -120,8 +147,31 @@ enum isNotEmpty = minLength(1);
     long max;
 }
 
+/++
+    Number is positive constraint
+ +/
 enum isPositive = minValue(0);
+
+///
 alias greaterThanOrEqualTo = minValue;
+
+///
 alias lessThanOrEqualTo = maxValue;
 
-alias allConstraints = getSymbolsByUDA!(oceandrift.validation.constraints, constraint);
+alias allFactoryConstraints = getSymbolsByUDA!(oceandrift.validation.constraints, constraint);
+
+/++
+    Determines whether a symbol qualifies as constraint
+ +/
+enum isConstraint(alias ConstraintCandidate) = hasUDA!(ConstraintCandidate, constraint);
+
+unittest
+{
+    static struct notAConstraint
+    {
+    }
+
+    assert(isConstraint!minLength);
+    assert(!(isConstraint!notAConstraint));
+
+}
