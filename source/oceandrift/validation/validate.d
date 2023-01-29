@@ -14,8 +14,6 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
 {
     auto output = ValidationResult!T(true);
 
-    enum dataTypeName = __traits(identifier, T);
-
     // foreach field in `T`
     static foreach (idx, field; T.tupleof)
     {
@@ -24,10 +22,29 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
 
             // foreach @UDA of `field`
             alias attributes = __traits(getAttributes, field);
-            static foreach (attributeValue; attributes)
+            static foreach (attribute; attributes)
             {
                 {
-                    alias attributeType = typeof(attributeValue);
+                    static if (is(attribute))
+                    {
+                        alias attributeType = attribute;
+                        enum attributeValue = attributeType.init;
+                    }
+                    else
+                    {
+                        enum attributeValue = attribute;
+                        alias attributeType = typeof(attributeValue);
+                    }
+
+                    static assert(
+                        !is(attributeType == void),
+                        "Potentially broken attribute `@"
+                            ~ attributeValue.stringof
+                            ~ "` on field `"
+                            ~ fieldName
+                            ~ '`'
+                    );
+
                     enum attributeName = __traits(identifier, attributeType);
 
                     // is UDA a @constraint?
@@ -47,7 +64,10 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
                             }),
                             "Invalid Constraint: `@"
                                 ~ attributeName
-                                ~ "` does not implement `bool check(" ~ dataTypeName ~ ") {…}`"
+                                ~ "` does not implement `bool check("
+                                ~ typeof(
+                                    field
+                                ).stringof ~ ") {…}`"
                         );
 
                         // apply constraint
