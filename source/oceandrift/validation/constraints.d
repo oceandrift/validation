@@ -250,11 +250,11 @@ unittest
 }
 
 /++
-    Valid UTF-8 constraint
+    Valid Unicode (UTF-8, UTF-16 or UTF-32) constraint
  +/
-@constraint struct isUTF8
+@constraint struct isUnicode
 {
-    bool check(string s)
+    bool check(T)(T s)
     {
         import std.utf : validate;
 
@@ -272,12 +272,18 @@ unittest
 ///
 unittest
 {
-    assert(test!isUTF8("abcdefghijklmnopqrstuvwxyz"));
-    assert(test!isUTF8("ABCDEFGHIUJKLMNOPQRSTUVXYZ"));
-    assert(test!isUTF8("1234567890"));
-    assert(test!isUTF8("Öl, Müll, Spaß"));
-    assert(!test!isUTF8("\xFF"));
-    assert(!test!isUTF8("\xF8\xA1\xA1\xA1\xA1"));
+    assert(test!isUnicode("abcdefghijklmnopqrstuvwxyz"));
+    assert(test!isUnicode("ABCDEFGHIUJKLMNOPQRSTUVXYZ"));
+    assert(test!isUnicode("1234567890"));
+    assert(test!isUnicode("Öl, Müll, Spaß"));
+    assert(!test!isUnicode("\xFF"));
+    assert(!test!isUnicode("\xF8\xA1\xA1\xA1\xA1"));
+}
+
+unittest
+{
+    const(char)[] s = "0000";
+    assert(test!isUnicode(s));
 }
 
 /++
