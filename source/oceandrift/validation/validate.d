@@ -141,7 +141,7 @@ struct ValidationError
 }
 
 /// Validation Result
-struct ValidationResult(Data)
+struct ValidationResult(Data) if (is(Data == struct) || is(Data == class))
 {
 @safe pure nothrow @nogc:
 
@@ -169,7 +169,7 @@ struct ValidationResult(Data)
         (only valid if `.ok` == `true`)
      +/
     Data data() inout
-    in (this.ok)
+    in (this.ok, "Trying to access data that did not pass validation.")
     {
         return _data;
     }
