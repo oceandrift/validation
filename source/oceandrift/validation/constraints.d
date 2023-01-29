@@ -87,7 +87,7 @@ unittest
 {
     struct Data
     {
-        @not!nonNaN // <-- must be NaN
+        @not!notNaN // <-- must be NaN
         float value = float.nan;
     }
 }
@@ -97,7 +97,7 @@ unittest
 {
     struct Data
     {
-        @not!nonNegative // <-- must not be non-negative
+        @not!notNegative // <-- must *not* be non-negative
         int value;
     }
 }
@@ -646,36 +646,36 @@ unittest
 /++
     Value must not be equal to zero
  +/
-@constraint struct nonZero
+@constraint struct notZero
 {
     bool check(T)(T actual)
     {
         return (actual != 0);
     }
 
-    enum string errorMessage = "must be non-zero";
+    enum string errorMessage = "must not be zero";
 }
 
 ///
 unittest
 {
-    assert(test!nonZero(1));
-    assert(test!nonZero(2));
-    assert(test!nonZero(-1));
-    assert(!test!nonZero(0));
+    assert(test!notZero(1));
+    assert(test!notZero(2));
+    assert(test!notZero(-1));
+    assert(!test!notZero(0));
 }
 
 enum positive = greaterThan(0); ///
 enum negative = lessThan(0); ///
-enum nonNegative = greaterThanOrEqualTo(0); ///
-enum nonPositive = lessThanOrEqualTo(0); ///
+enum notNegative = greaterThanOrEqualTo(0); ///
+enum notPositive = lessThanOrEqualTo(0); ///
 alias minValue = greaterThanOrEqualTo; ///
 alias maxValue = lessThanOrEqualTo; ///
 
 // floating point
 
 ///
-struct nonNaN
+struct notNaN
 {
     bool check(T)(T actual)
     {
@@ -684,20 +684,20 @@ struct nonNaN
         return (!actual.isNaN);
     }
 
-    enum string errorMessage = "must be non-NaN";
+    enum string errorMessage = "must not be NaN";
 }
 
 ///
 unittest
 {
-    assert(test!nonNaN(1.0f));
-    assert(test!nonNaN(-1.0f));
+    assert(test!notNaN(1.0f));
+    assert(test!notNaN(-1.0f));
 
-    assert(test!nonNaN(1.0));
-    assert(test!nonNaN(-1.0));
+    assert(test!notNaN(1.0));
+    assert(test!notNaN(-1.0));
 
     enum float nan = 0f / 0f;
-    assert(!test!nonNaN(nan));
+    assert(!test!notNaN(nan));
 }
 
 // probably not something you’d want to use

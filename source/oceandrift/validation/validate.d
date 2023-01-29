@@ -104,7 +104,7 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
         @notEmpty
         string name;
 
-        @nonNegative
+        @notNegative
         int age;
     }
 
