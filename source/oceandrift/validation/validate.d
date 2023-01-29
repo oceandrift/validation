@@ -101,10 +101,10 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
 {
     struct Person
     {
-        @isNotEmpty
+        @notEmpty
         string name;
 
-        @isPositive
+        @nonNegative
         int age;
     }
 
