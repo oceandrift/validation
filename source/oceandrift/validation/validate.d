@@ -72,6 +72,7 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
         }
     }
 
+    output._data = input;
     return output;
 }
 
@@ -90,6 +91,7 @@ ValidationResult!T validate(bool bailOut = false, T)(T input)
     auto personA = Person("Somebody", 32);
     ValidationResult!Person rA = validate(personA);
     assert(rA.ok);
+    assert(rA.data.name == "Somebody"); // accessing validated data
 
     auto personB = Person("", 32);
     ValidationResult!Person rB = validate(personB);
@@ -118,7 +120,7 @@ struct ValidationError
     }
 }
 
-///
+/// Validation Result
 struct ValidationResult(Data)
 {
 @safe pure nothrow @nogc:
@@ -132,7 +134,7 @@ struct ValidationResult(Data)
     // public on purpose, though undocumented; “to be used with care”
     public
     {
-        ValidationError[(Data.tupleof).length] _errors;
+        ValidationError[Data.tupleof.length] _errors;
     }
 
     ///

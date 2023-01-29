@@ -173,5 +173,4 @@ unittest
 
     assert(isConstraint!minLength);
     assert(!(isConstraint!notAConstraint));
-
 }
