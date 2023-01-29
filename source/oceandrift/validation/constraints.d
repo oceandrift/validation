@@ -266,7 +266,7 @@ unittest
         return true;
     }
 
-    static immutable string errorMessage = "is not well-formed UTF-8";
+    static immutable string errorMessage = "is not well-formed Unicode";
 }
 
 ///
